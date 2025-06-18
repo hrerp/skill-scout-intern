@@ -1,15 +1,17 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Download, Users } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { LogOut, Download, Users, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminDashboard: React.FC = () => {
   const { user, interns, logout } = useAuth();
   const { toast } = useToast();
+  const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; name: string } | null>(null);
 
   const exportData = () => {
     const dataStr = JSON.stringify(interns, null, 2);
@@ -33,6 +35,10 @@ const AdminDashboard: React.FC = () => {
       case 'Expert': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const openPhotoModal = (photoUrl: string, internName: string) => {
+    setSelectedPhoto({ url: photoUrl, name: internName });
   };
 
   return (
@@ -110,18 +116,21 @@ const AdminDashboard: React.FC = () => {
             {interns.map((intern) => (
               <Card key={intern.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-start space-x-6">
                     {intern.photo && (
-                      <img 
-                        src={intern.photo} 
-                        alt={intern.name}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                      />
+                      <div className="flex-shrink-0">
+                        <img 
+                          src={intern.photo} 
+                          alt={intern.name}
+                          className="w-32 h-32 rounded-lg object-cover border-2 border-gray-200 cursor-pointer hover:shadow-lg transition-shadow"
+                          onClick={() => openPhotoModal(intern.photo, intern.name)}
+                        />
+                      </div>
                     )}
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <CardTitle className="text-xl">{intern.name}</CardTitle>
-                      <CardDescription>{intern.college}</CardDescription>
-                      <p className="text-sm text-gray-500">
+                      <CardDescription className="text-base">{intern.college}</CardDescription>
+                      <p className="text-sm text-gray-500 mt-2">
                         Submitted: {new Date(intern.submittedAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -159,6 +168,28 @@ const AdminDashboard: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* Photo Modal */}
+        <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+            <DialogHeader className="p-6 pb-2">
+              <DialogTitle className="text-xl font-semibold">
+                {selectedPhoto?.name}'s Photo
+              </DialogTitle>
+            </DialogHeader>
+            <div className="px-6 pb-6">
+              {selectedPhoto && (
+                <div className="flex justify-center">
+                  <img 
+                    src={selectedPhoto.url} 
+                    alt={selectedPhoto.name}
+                    className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                  />
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
