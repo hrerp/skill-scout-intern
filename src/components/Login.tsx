@@ -20,6 +20,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     
+    console.log('Admin login attempt with password:', adminPassword);
     const success = await login('admin', adminPassword);
     if (success) {
       toast({
@@ -29,7 +30,7 @@ const Login: React.FC = () => {
     } else {
       toast({
         title: "Login Failed",
-        description: "Invalid admin password",
+        description: "Invalid admin password. Please use: 231805",
         variant: "destructive",
       });
     }
@@ -38,9 +39,19 @@ const Login: React.FC = () => {
 
   const handleUserLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter your name to continue",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     
-    const success = await login('user', undefined, userName);
+    console.log('User login attempt with name:', userName);
+    const success = await login('user', undefined, userName.trim());
     if (success) {
       toast({
         title: "Login Successful",
@@ -49,7 +60,7 @@ const Login: React.FC = () => {
     } else {
       toast({
         title: "Login Failed",
-        description: "Please enter your name",
+        description: "Unable to log in. Please try again.",
         variant: "destructive",
       });
     }
@@ -124,7 +135,7 @@ const Login: React.FC = () => {
               <CardHeader>
                 <CardTitle>Admin Login</CardTitle>
                 <CardDescription>
-                  Enter the admin password to access all intern data
+                  Enter the admin password (231805) to access all intern data
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -134,7 +145,7 @@ const Login: React.FC = () => {
                     <Input
                       id="adminPassword"
                       type="password"
-                      placeholder="Enter admin password"
+                      placeholder="Enter admin password (231805)"
                       value={adminPassword}
                       onChange={(e) => setAdminPassword(e.target.value)}
                       required

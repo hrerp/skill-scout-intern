@@ -34,9 +34,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Shared account for all interns to ensure data visibility across devices
-const SHARED_INTERN_EMAIL = 'shared.intern@marzelet.local';
+// Use valid email addresses for authentication
+const SHARED_INTERN_EMAIL = 'shared.intern@marzelet.com';
 const SHARED_INTERN_PASSWORD = 'intern123456';
+const ADMIN_EMAIL = 'admin@marzelet.com';
+const ADMIN_PASSWORD = 'admin231805';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -48,10 +50,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
         setSession(session);
         if (session?.user) {
           // Set user based on session
-          const isAdmin = session.user.email === 'admin@admin.com';
+          const isAdmin = session.user.email === ADMIN_EMAIL;
           setUser({
             id: session.user.id,
             name: isAdmin ? 'Admin' : session.user.user_metadata?.display_name || 'User',
@@ -60,7 +63,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           
           // Load interns data for admin users
           if (isAdmin) {
-            await loadInterns();
+            setTimeout(() => {
+              loadInterns();
+            }, 0);
           }
         } else {
           setUser(null);
@@ -72,8 +77,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
       if (session?.user) {
-        const isAdmin = session.user.email === 'admin@admin.com';
+        const isAdmin = session.user.email === ADMIN_EMAIL;
         setUser({
           id: session.user.id,
           name: isAdmin ? 'Admin' : session.user.user_metadata?.display_name || 'User',
@@ -93,6 +99,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loadInterns = async () => {
     try {
+      console.log('Loading interns data...');
       const { data, error } = await supabase
         .from('interns')
         .select('*')
@@ -103,6 +110,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
+      console.log('Loaded interns:', data);
       const formattedInterns: Intern[] = data.map(intern => ({
         id: intern.id,
         name: intern.name,
@@ -123,31 +131,50 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const login = async (role: 'user' | 'admin', password?: string, userName?: string): Promise<boolean> => {
+    console.log('Login attempt:', role, userName ? `user: ${userName}` : 'admin');
+    
     if (role === 'admin') {
       if (password === '231805') {
         try {
-          const { error } = await supabase.auth.signInWithPassword({
-            email: 'admin@admin.com',
-            password: 'admin123456'
+          // First try to sign in
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: ADMIN_EMAIL,
+            password: ADMIN_PASSWORD
           });
           
-          if (error) {
+          if (signInError) {
+            console.log('Admin sign in failed, trying to create account:', signInError.message);
             // Try to sign up admin if doesn't exist
-            const { error: signUpError } = await supabase.auth.signUp({
-              email: 'admin@admin.com',
-              password: 'admin123456'
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email: ADMIN_EMAIL,
+              password: ADMIN_PASSWORD,
+              options: {
+                emailRedirectTo: `${window.location.origin}/`,
+                data: {
+                  display_name: 'Admin'
+                }
+              }
             });
             
-            if (!signUpError) {
-              // Sign in after signup
-              const { error: signInError } = await supabase.auth.signInWithPassword({
-                email: 'admin@admin.com',
-                password: 'admin123456'
-              });
-              return !signInError;
+            if (signUpError) {
+              console.error('Admin sign up error:', signUpError);
+              return false;
             }
-            return false;
+            
+            // If sign up successful, try to sign in again
+            if (signUpData.user) {
+              const { error: retrySignInError } = await supabase.auth.signInWithPassword({
+                email: ADMIN_EMAIL,
+                password: ADMIN_PASSWORD
+              });
+              if (retrySignInError) {
+                console.error('Admin retry sign in error:', retrySignInError);
+                return false;
+              }
+            }
           }
+          
+          console.log('Admin login successful');
           return true;
         } catch (error) {
           console.error('Admin login error:', error);
@@ -158,34 +185,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } else {
       if (userName && userName.trim()) {
         try {
-          // Use shared account for all interns
-          const { error } = await supabase.auth.signInWithPassword({
+          // First try to sign in with shared intern account
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email: SHARED_INTERN_EMAIL,
             password: SHARED_INTERN_PASSWORD
           });
           
-          if (error) {
+          if (signInError) {
+            console.log('Intern sign in failed, trying to create shared account:', signInError.message);
             // Try to sign up shared intern account if doesn't exist
-            const { error: signUpError } = await supabase.auth.signUp({
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
               email: SHARED_INTERN_EMAIL,
               password: SHARED_INTERN_PASSWORD,
               options: {
+                emailRedirectTo: `${window.location.origin}/`,
                 data: {
                   display_name: userName
-                },
-                emailRedirectTo: `${window.location.origin}/`
+                }
               }
             });
             
-            if (!signUpError) {
-              // Sign in after signup
-              const { error: signInError } = await supabase.auth.signInWithPassword({
+            if (signUpError) {
+              console.error('Intern sign up error:', signUpError);
+              return false;
+            }
+            
+            // If sign up successful, try to sign in again
+            if (signUpData.user) {
+              const { error: retrySignInError } = await supabase.auth.signInWithPassword({
                 email: SHARED_INTERN_EMAIL,
                 password: SHARED_INTERN_PASSWORD
               });
-              return !signInError;
+              if (retrySignInError) {
+                console.error('Intern retry sign in error:', retrySignInError);
+                return false;
+              }
             }
-            return false;
           }
           
           // Update the user metadata with the current user's name
@@ -193,6 +228,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             data: { display_name: userName }
           });
           
+          console.log('Intern login successful for:', userName);
           return true;
         } catch (error) {
           console.error('User login error:', error);
@@ -204,6 +240,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
+    console.log('Logging out...');
     await supabase.auth.signOut();
     setUser(null);
     setInterns([]);
@@ -211,9 +248,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const submitInternData = async (data: Omit<Intern, 'id' | 'submittedAt'>) => {
-    if (!session?.user) return;
+    if (!session?.user) {
+      console.error('No user session for submitting data');
+      return;
+    }
 
     try {
+      console.log('Submitting intern data:', data);
       const internData = {
         user_id: session.user.id,
         name: data.name,
@@ -230,6 +271,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
       if (existingData) {
+        console.log('Updating existing intern data');
         // Update existing record
         const { error } = await supabase
           .from('interns')
@@ -241,6 +283,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
       } else {
+        console.log('Inserting new intern data');
         // Insert new record
         const { error } = await supabase
           .from('interns')
@@ -252,6 +295,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
 
+      console.log('Intern data submitted successfully');
       // Reload data if admin
       if (user?.role === 'admin') {
         await loadInterns();
