@@ -20,7 +20,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     
-    const success = login('admin', adminPassword);
+    const success = await login('admin', adminPassword);
     if (success) {
       toast({
         title: "Admin Login Successful",
@@ -40,7 +40,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     
-    const success = login('user', undefined, userName);
+    const success = await login('user', undefined, userName);
     if (success) {
       toast({
         title: "Login Successful",
@@ -60,7 +60,21 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Intern Management</h1>
+          <div className="flex items-center justify-center mb-4">
+            <img 
+              src="/src/assets/marzelet-logo.png" 
+              alt="Marzelet Info Technology" 
+              className="h-16 w-auto mr-3"
+              onError={(e) => {
+                // Hide image if it fails to load
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Marzelet Info Technology</h1>
+              <p className="text-lg text-blue-600 font-medium">Intern Management System</p>
+            </div>
+          </div>
           <p className="text-gray-600">Secure portal for intern registration and management</p>
         </div>
         

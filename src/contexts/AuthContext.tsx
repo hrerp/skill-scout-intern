@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -33,6 +34,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Shared account for all interns to ensure data visibility across devices
+const SHARED_INTERN_EMAIL = 'shared.intern@marzelet.local';
+const SHARED_INTERN_PASSWORD = 'intern123456';
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [interns, setInterns] = useState<Intern[]>([]);
@@ -49,7 +54,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const isAdmin = session.user.email === 'admin@admin.com';
           setUser({
             id: session.user.id,
-            name: isAdmin ? 'Admin' : session.user.email || 'User',
+            name: isAdmin ? 'Admin' : session.user.user_metadata?.display_name || 'User',
             role: isAdmin ? 'admin' : 'user'
           });
           
@@ -71,7 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const isAdmin = session.user.email === 'admin@admin.com';
         setUser({
           id: session.user.id,
-          name: isAdmin ? 'Admin' : session.user.email || 'User',
+          name: isAdmin ? 'Admin' : session.user.user_metadata?.display_name || 'User',
           role: isAdmin ? 'admin' : 'user'
         });
         setSession(session);
@@ -153,18 +158,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } else {
       if (userName && userName.trim()) {
         try {
-          const email = `${userName.toLowerCase().replace(/\s+/g, '')}@intern.local`;
+          // Use shared account for all interns
           const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password: 'intern123'
+            email: SHARED_INTERN_EMAIL,
+            password: SHARED_INTERN_PASSWORD
           });
           
           if (error) {
-            // Try to sign up user if doesn't exist
+            // Try to sign up shared intern account if doesn't exist
             const { error: signUpError } = await supabase.auth.signUp({
-              email,
-              password: 'intern123',
+              email: SHARED_INTERN_EMAIL,
+              password: SHARED_INTERN_PASSWORD,
               options: {
+                data: {
+                  display_name: userName
+                },
                 emailRedirectTo: `${window.location.origin}/`
               }
             });
@@ -172,13 +180,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (!signUpError) {
               // Sign in after signup
               const { error: signInError } = await supabase.auth.signInWithPassword({
-                email,
-                password: 'intern123'
+                email: SHARED_INTERN_EMAIL,
+                password: SHARED_INTERN_PASSWORD
               });
               return !signInError;
             }
             return false;
           }
+          
+          // Update the user metadata with the current user's name
+          await supabase.auth.updateUser({
+            data: { display_name: userName }
+          });
+          
           return true;
         } catch (error) {
           console.error('User login error:', error);
@@ -208,11 +222,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         languages: data.languages
       };
 
-      // Check if user already has data
+      // Check if user already has data with this name
       const { data: existingData } = await supabase
         .from('interns')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('name', data.name)
         .single();
 
       if (existingData) {
@@ -220,7 +234,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { error } = await supabase
           .from('interns')
           .update(internData)
-          .eq('user_id', session.user.id);
+          .eq('name', data.name);
 
         if (error) {
           console.error('Error updating intern data:', error);
@@ -249,7 +263,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const getCurrentUserData = (): Intern | null => {
     if (!user || user.role !== 'user') return null;
-    return interns.find(intern => intern.id === user.id) || null;
+    const currentUserName = session?.user?.user_metadata?.display_name;
+    return interns.find(intern => intern.name === currentUserName) || null;
   };
 
   return (

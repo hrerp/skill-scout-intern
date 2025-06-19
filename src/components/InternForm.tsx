@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash, Upload, LogOut } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import LanguageAutocomplete from './LanguageAutocomplete';
 
 interface Language {
   name: string;
@@ -105,10 +106,40 @@ const InternForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.college || formData.languages.length === 0) {
+    // Enhanced validation
+    if (!formData.name.trim()) {
       toast({
-        title: "Incomplete Form",
-        description: "Please fill in all required fields",
+        title: "Name Required",
+        description: "Please enter your name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.college.trim()) {
+      toast({
+        title: "College Required",
+        description: "Please enter your college or university name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.languages.length === 0) {
+      toast({
+        title: "Programming Languages Required",
+        description: "Please add at least one programming language",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if all languages have names
+    const emptyLanguages = formData.languages.some(lang => !lang.name.trim());
+    if (emptyLanguages) {
+      toast({
+        title: "Language Names Required",
+        description: "Please enter a name for all programming languages",
         variant: "destructive",
       });
       return;
@@ -179,7 +210,7 @@ const InternForm: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -189,7 +220,7 @@ const InternForm: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="college">College/University</Label>
+                <Label htmlFor="college">College/University *</Label>
                 <Input
                   id="college"
                   value={formData.college}
@@ -226,38 +257,44 @@ const InternForm: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Programming Languages</CardTitle>
+              <CardTitle>Programming Languages *</CardTitle>
               <CardDescription>
-                Add the programming languages you know and your proficiency level
+                Add the programming languages you know and your proficiency level (at least one required)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {formData.languages.map((language, index) => (
-                <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg">
-                  <Input
-                    placeholder="Language name (e.g., JavaScript, Python)"
-                    value={language.name}
-                    onChange={(e) => updateLanguage(index, 'name', e.target.value)}
-                    className="flex-1"
-                  />
-                  <Select
-                    value={language.proficiency}
-                    onValueChange={(value) => updateLanguage(index, 'proficiency', value)}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Beginner">Beginner</SelectItem>
-                      <SelectItem value="Intermediate">Intermediate</SelectItem>
-                      <SelectItem value="Expert">Expert</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div key={index} className="flex items-start space-x-2 p-3 border rounded-lg">
+                  <div className="flex-1 space-y-2">
+                    <Label>Language Name *</Label>
+                    <LanguageAutocomplete
+                      value={language.name}
+                      onChange={(value) => updateLanguage(index, 'name', value)}
+                      placeholder="e.g., JavaScript, Python, Java"
+                    />
+                  </div>
+                  <div className="w-40 space-y-2">
+                    <Label>Proficiency</Label>
+                    <Select
+                      value={language.proficiency}
+                      onValueChange={(value) => updateLanguage(index, 'proficiency', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Beginner">Beginner</SelectItem>
+                        <SelectItem value="Intermediate">Intermediate</SelectItem>
+                        <SelectItem value="Expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
                     onClick={() => removeLanguage(index)}
+                    className="mt-6"
                   >
                     <Trash className="w-4 h-4" />
                   </Button>
@@ -271,8 +308,14 @@ const InternForm: React.FC = () => {
                 className="w-full"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Language
+                Add Programming Language
               </Button>
+              
+              {formData.languages.length === 0 && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">
+                  ⚠️ At least one programming language is required
+                </p>
+              )}
             </CardContent>
           </Card>
 

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { LogOut, Download, Users, X } from 'lucide-react';
+import { LogOut, Download, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminDashboard: React.FC = () => {
@@ -61,7 +61,7 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card>
             <CardContent className="flex items-center p-6">
               <Users className="w-8 h-8 text-blue-600 mr-4" />
@@ -84,20 +84,6 @@ const AdminDashboard: React.FC = () => {
                   ).length}
                 </p>
                 <p className="text-gray-600">Expert Level</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="flex items-center p-6">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-4">
-                <span className="text-purple-600 font-bold">L</span>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {interns.reduce((acc, intern) => acc + intern.languages.length, 0)}
-                </p>
-                <p className="text-gray-600">Total Skills</p>
               </div>
             </CardContent>
           </Card>
