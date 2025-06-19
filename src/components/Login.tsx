@@ -77,11 +77,10 @@ const Login: React.FC = () => {
               alt="Marzelet Info Technology" 
               className="h-16 w-auto mr-3"
               onError={(e) => {
-                // Hide image if it fails to load
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
-            <div>
+            <div className="text-left">
               <h1 className="text-3xl font-bold text-gray-900">Marzelet Info Technology</h1>
               <p className="text-lg text-blue-600 font-medium">Intern Management System</p>
             </div>
