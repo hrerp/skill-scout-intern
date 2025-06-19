@@ -30,6 +30,7 @@ const InternForm: React.FC = () => {
   const [showExpertDialog, setShowExpertDialog] = useState(false);
   const [expertLanguageIndex, setExpertLanguageIndex] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const existingData = getCurrentUserData();
@@ -101,7 +102,7 @@ const InternForm: React.FC = () => {
     setExpertLanguageIndex(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.college || formData.languages.length === 0) {
@@ -113,12 +114,23 @@ const InternForm: React.FC = () => {
       return;
     }
 
-    submitInternData(formData);
-    setSubmitted(true);
-    toast({
-      title: "Success!",
-      description: "Your details have been submitted successfully",
-    });
+    setIsSubmitting(true);
+    try {
+      await submitInternData(formData);
+      setSubmitted(true);
+      toast({
+        title: "Success!",
+        description: "Your details have been submitted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit your details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -134,7 +146,7 @@ const InternForm: React.FC = () => {
           <CardContent className="space-y-4">
             <div className="text-6xl">✅</div>
             <p className="text-gray-600">
-              Thank you for submitting your information. Your details are now available to the admin team.
+              Thank you for submitting your information. Your details are now stored permanently and available to the admin team.
             </p>
             <Button onClick={logout} variant="outline" className="w-full">
               <LogOut className="w-4 h-4 mr-2" />
@@ -264,8 +276,13 @@ const InternForm: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Button type="submit" className="w-full" size="lg">
-            Submit Registration
+          <Button 
+            type="submit" 
+            className="w-full" 
+            size="lg"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Registration'}
           </Button>
         </form>
       </div>
