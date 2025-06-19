@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -104,7 +103,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: intern.name,
         college: intern.college,
         photo: intern.photo || '',
-        languages: intern.languages || [],
+        languages: Array.isArray(intern.languages) ? intern.languages as {
+          name: string;
+          proficiency: 'Beginner' | 'Intermediate' | 'Expert';
+          expertConfirmed?: boolean;
+        }[] : [],
         submittedAt: intern.created_at
       }));
 
